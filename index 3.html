@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="theme-color" content="#0B0E14"/>
+<title>Cango – Stundenzettel</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%230B0E14'/><circle cx='50' cy='50' r='46' fill='none' stroke='%23F0A500' stroke-width='3'/><rect x='30' y='20' width='40' height='52' rx='5' fill='%231A2030'/><rect x='37' y='35' width='20' height='4' rx='2' fill='%23F0A500' opacity='0.9'/><rect x='37' y='43' width='26' height='4' rx='2' fill='%23F0A500' opacity='0.7'/><rect x='37' y='51' width='16' height='4' rx='2' fill='%2322C55E' opacity='0.9'/></svg>"/>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0B0E14;--surf:#131820;--card:#1A2030;
+  --bor:#252E3F;--bor2:#2E3A52;
+  --acc:#F0A500;--acc-bg:rgba(240,165,0,.12);
+  --grn:#22C55E;--grn-bg:rgba(34,197,94,.1);
+  --red:#EF4444;--red-bg:rgba(239,68,68,.1);
+  --blu:#3B82F6;--blu-bg:rgba(59,130,246,.1);
+  --txt:#D4DCE8;--mut:#6B7A94;--dim:#3D4F68;
+  --sans:'Syne',system-ui,sans-serif;
+  --mono:'JetBrains Mono','Fira Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--sans)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--surf)}
+::-webkit-scrollbar-thumb{background:var(--bor);border-radius:3px}
+button{cursor:pointer;border:none;font-family:var(--sans);transition:opacity .15s}
+button:hover{opacity:.82}
+input,select{outline:none;font-family:var(--mono)}
+select option{background:var(--card)}
+a{color:inherit}
+
+#app{display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+#sb{width:224px;background:var(--surf);border-right:1px solid var(--bor);display:flex;flex-direction:column;flex-shrink:0}
+#sb-brand{padding:16px 16px 14px;border-bottom:1px solid var(--bor);display:flex;align-items:center;gap:12px}
+#sb-brand svg{width:46px;height:46px;flex-shrink:0}
+.bt-lbl{font-family:var(--mono);font-size:8px;color:var(--acc);letter-spacing:3px;font-weight:600}
+.bt-name{font-weight:800;font-size:15px;letter-spacing:-.3px;line-height:1.15}
+.bt-sub{font-family:var(--mono);font-size:9px;color:var(--mut);margin-top:2px}
+#sb-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px}
+.nb{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:8px;background:transparent;color:var(--mut);font-size:13px;font-weight:500;border:1px solid transparent;text-align:left}
+.nb.on{background:var(--acc-bg);color:var(--acc);font-weight:700;border-color:rgba(240,165,0,.3)}
+.ni{font-size:16px;width:20px;text-align:center}
+#sb-foot{padding:13px 18px;border-top:1px solid var(--bor)}
+.fl{font-family:var(--mono);font-size:9px;color:var(--mut);margin-bottom:3px;letter-spacing:1px}
+.fv{font-family:var(--mono);font-size:15px;color:var(--grn);font-weight:700}
+
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{background:var(--surf);border-bottom:1px solid var(--bor);height:52px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#tb-left{display:flex;align-items:center;gap:9px;font-weight:700;font-size:14px}
+#tb-right{display:flex;gap:8px;align-items:center}
+#tb-right select{background:var(--card);border:1px solid var(--bor);color:var(--txt);padding:5px 10px;border-radius:6px;font-size:11px}
+#content{flex:1;overflow:auto;padding:20px}
+.page{display:none}.page.on{display:block}
+
+/* STAT GRID */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.sc{background:var(--card);border:1px solid var(--bor);border-radius:12px;padding:16px 18px;border-top-width:2px}
+.sc .si{font-size:20px;margin-bottom:8px}
+.sc .sv{font-family:var(--mono);font-size:24px;font-weight:700}
+.sc .sl{font-size:11px;color:var(--mut);margin-top:3px}
+.sc .ss{font-size:10px;font-family:var(--mono);margin-top:2px;opacity:.85}
+
+/* DRIVER MINI */
+.dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.dm{background:var(--card);border:1px solid var(--bor);border-radius:10px;padding:12px 13px}
+.dn{font-weight:600;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:5px}
+.dmet{font-family:var(--mono);font-size:10px;color:var(--mut)}
+.dh{font-family:var(--mono);font-size:22px;font-weight:700;margin-top:4px}
+.ds{font-size:10px;margin-top:2px}
+
+/* BUTTONS */
+.ba{background:var(--acc);color:#000;padding:9px 18px;border-radius:8px;font-weight:800;font-size:13px}
+.bg{background:var(--card);color:var(--txt);padding:8px 16px;border-radius:8px;font-weight:600;font-size:12px;border:1px solid var(--bor)}
+.bsm{background:transparent;border:1px solid var(--bor);color:var(--mut);padding:3px 10px;border-radius:5px;font-size:10px;font-family:var(--mono)}
+.br{background:var(--red-bg);border:1px solid rgba(239,68,68,.4);color:var(--red);padding:7px 12px;border-radius:7px;font-family:var(--mono);font-weight:700}
+.bam{background:var(--acc-bg);border:1px solid rgba(240,165,0,.4);color:var(--acc);padding:7px 12px;border-radius:7px;font-family:var(--mono);font-weight:700}
+.bbl{background:var(--blu-bg);border:1px solid rgba(59,130,246,.4);color:var(--blu);padding:6px 13px;border-radius:7px;font-family:var(--mono);font-size:11px}
+
+/* TABLE */
+.tw{background:var(--card);border:1px solid var(--bor);border-radius:12px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+thead th{padding:9px 13px;text-align:left;font-size:9px;color:var(--mut);letter-spacing:1.5px;font-weight:700;border-bottom:1px solid var(--bor);background:var(--surf)}
+tbody tr{border-bottom:1px solid rgba(37,46,63,.3)}
+tbody tr:nth-child(even){background:var(--surf)}
+tbody tr:nth-child(odd){background:var(--card)}
+td{padding:8px 13px}
+tr.rw td{color:var(--txt)}
+tr.rk{background:#2A1010!important}tr.rk td{color:#F87171}
+tr.rh{background:#0F1430!important}tr.rh td{color:#93C5FD}
+tr.ro td{color:var(--dim)}
+tfoot tr{background:#1F3864!important;border-top:2px solid var(--bor)}
+tfoot td{padding:12px 16px;color:white;font-weight:800;font-family:var(--sans);font-size:13px}
+.tot{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--acc);text-align:right;padding-right:18px}
+
+/* PLANUNG */
+#pw{display:grid;grid-template-columns:220px 1fr;gap:16px;height:calc(100vh - 52px - 40px);overflow:hidden}
+#dl{background:var(--card);border:1px solid var(--bor);border-radius:12px;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:3px}
+#dlh{font-family:var(--mono);font-size:9px;color:var(--mut);letter-spacing:2px;margin-bottom:6px;padding-bottom:8px;border-bottom:1px solid var(--bor)}
+.dli{padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent;transition:all .1s}
+.dli:hover{background:rgba(240,165,0,.06)}
+.dli.on{background:var(--acc-bg);border-color:rgba(240,165,0,.35)}
+.dlin{font-weight:600;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlis{display:flex;justify-content:space-between;margin-top:3px}
+#pa{overflow:auto;display:flex;flex-direction:column;gap:12px}
+
+/* CONFIG */
+.cb{background:var(--card);border:1px solid var(--bor);border-radius:12px;padding:16px;flex-shrink:0}
+.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.cg{display:grid;grid-template-columns:1fr 1.3fr 1.3fr;gap:12px}
+.fl2{font-size:9px;color:var(--mut);font-family:var(--mono);letter-spacing:1.5px;margin-bottom:5px}
+.fi{width:100%;background:var(--surf);border:1px solid var(--bor);color:var(--txt);padding:7px 11px;border-radius:7px;font-family:var(--mono);font-size:11px}
+.tag-a{font-family:var(--mono);font-size:9px;background:var(--acc-bg);color:var(--acc);padding:2px 7px;border-radius:4px;cursor:pointer;display:inline-block;margin:2px}
+.tag-r{font-family:var(--mono);font-size:9px;background:var(--red-bg);color:var(--red);padding:2px 7px;border-radius:4px;cursor:pointer;display:inline-block;margin:2px}
+.tagrow{display:flex;flex-wrap:wrap;margin-top:5px;gap:2px}
+
+.sw{background:var(--card);border:1px solid var(--bor);border-radius:12px;overflow:hidden;flex-shrink:0}
+.sh{padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--bor);background:var(--surf)}
+.wb{background:var(--red-bg);border:1px solid rgba(239,68,68,.4);border-radius:10px;padding:11px 15px;flex-shrink:0}
+.wl{font-family:var(--mono);font-size:11px;color:var(--red)}
+
+/* MODAL */
+#mo{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;z-index:500}
+#mo.on{display:flex}
+#md{background:var(--card);border:1px solid var(--bor);border-radius:16px;padding:28px;width:380px}
+#md h3{font-weight:800;font-size:17px;margin-bottom:18px}
+.mf{margin-bottom:12px}
+.mck{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surf);border-radius:8px;border:1px solid var(--bor);margin-bottom:18px}
+
+/* DOCS */
+#dz{background:var(--card);border:2px dashed var(--bor);border-radius:14px;padding:32px 0;text-align:center;cursor:pointer;margin-bottom:18px;transition:all .15s}
+#dz.dv{background:var(--acc-bg);border-color:var(--acc)}
+.dtg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.dtc{background:var(--card);border-radius:10px;padding:13px 15px;border-top-width:2px;border-style:solid}
+
+/* UTILS */
+.es{background:var(--card);border:2px dashed var(--bor);border-radius:14px;padding:60px 0;text-align:center}
+.ei{font-size:34px;color:var(--dim);margin-bottom:12px}
+.et{color:var(--mut);font-size:14px;font-weight:600}
+.esub{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:6px}
+.row{display:flex;gap:10px;align-items:center;margin-bottom:20px}
+.slbl{font-family:var(--mono);font-size:9px;color:var(--mut);letter-spacing:2px;margin-bottom:10px}
+.pill{font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:6px}
+.dlfoot{margin-top:auto;padding-top:10px;border-top:1px solid var(--bor)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- SIDEBAR -->
+<aside id="sb">
+  <div id="sb-brand">
+    <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="200" cy="200" r="195" fill="#0B0E14"/>
+      <circle cx="200" cy="200" r="188" fill="none" stroke="#F0A500" stroke-width="2.5"/>
+      <circle cx="200" cy="200" r="162" fill="none" stroke="#252E3F" stroke-width="1"/>
+      <rect x="125" y="88" width="150" height="188" rx="14" fill="#1A2030"/>
+      <rect x="125" y="88" width="150" height="188" rx="14" fill="none" stroke="#2E3A52" stroke-width="2"/>
+      <polygon points="233,88 275,130 233,130" fill="#0B0E14"/>
+      <polyline points="233,88 233,130 275,130" fill="none" stroke="#F0A500" stroke-width="2"/>
+      <line x1="142" y1="148" x2="258" y2="148" stroke="#2E3A52" stroke-width="1.5"/>
+      <rect x="142" y="157" width="72" height="12" rx="3" fill="#F0A500" opacity="0.9"/>
+      <rect x="142" y="177" width="88" height="12" rx="3" fill="#F0A500" opacity="0.65"/>
+      <rect x="142" y="197" width="58" height="12" rx="3" fill="#22C55E" opacity="0.8"/>
+      <rect x="142" y="217" width="78" height="12" rx="3" fill="#F0A500" opacity="0.55"/>
+      <rect x="142" y="237" width="65" height="12" rx="3" fill="#F0A500" opacity="0.45"/>
+      <circle cx="272" cy="248" r="42" fill="#0B0E14"/>
+      <circle cx="272" cy="248" r="36" fill="#131820"/>
+      <circle cx="272" cy="248" r="36" fill="none" stroke="#F0A500" stroke-width="2.5"/>
+      <line x1="272" y1="215" x2="272" y2="221" stroke="#3D4F68" stroke-width="2" stroke-linecap="round"/>
+      <line x1="272" y1="275" x2="272" y2="281" stroke="#3D4F68" stroke-width="2" stroke-linecap="round"/>
+      <line x1="239" y1="248" x2="245" y2="248" stroke="#3D4F68" stroke-width="2" stroke-linecap="round"/>
+      <line x1="299" y1="248" x2="305" y2="248" stroke="#3D4F68" stroke-width="2" stroke-linecap="round"/>
+      <line x1="272" y1="248" x2="272" y2="228" stroke="#F0A500" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="272" y1="248" x2="289" y2="256" stroke="#D4DCE8" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="272" cy="248" r="3.5" fill="#F0A500"/>
+      <circle cx="145" cy="102" r="18" fill="#22C55E" opacity="0.12"/>
+      <circle cx="145" cy="102" r="18" fill="none" stroke="#22C55E" stroke-width="1.8"/>
+      <polyline points="136,102 143,110 156,94" fill="none" stroke="#22C55E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="98" y="318" width="204" height="34" rx="10" fill="#1A2030"/>
+      <rect x="98" y="318" width="204" height="34" rx="10" fill="none" stroke="#2E3A52" stroke-width="1.5"/>
+      <text x="200" y="340" font-family="Arial Black,Arial,sans-serif" font-size="14" font-weight="900" fill="#F0A500" text-anchor="middle" letter-spacing="6">CANGO</text>
+      <text x="200" y="372" font-family="Arial,sans-serif" font-size="10" fill="#6B7A94" text-anchor="middle" letter-spacing="3.5">STUNDENZETTEL</text>
+    </svg>
+    <div>
+      <div class="bt-lbl">CANGO TRANSPORTE</div>
+      <div class="bt-name">Stundenzettel</div>
+      <div class="bt-sub">Admin · NRW · 2026</div>
+    </div>
+  </div>
+  <nav id="sb-nav">
+    <button class="nb on" data-pg="dashboard"><span class="ni">◈</span>Dashboard</button>
+    <button class="nb" data-pg="fahrer"><span class="ni">⬡</span>Fahrer</button>
+    <button class="nb" data-pg="planung"><span class="ni">▦</span>Monatsplanung</button>
+    <button class="nb" data-pg="dokumente"><span class="ni">◧</span>Dokumente</button>
+  </nav>
+  <div id="sb-foot">
+    <div class="fl">MINDESTLOHN 2026</div>
+    <div class="fv">13,90 €/Std.</div>
+    <div class="fl" style="margin-top:4px">Bundesland: NRW</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+  <header id="topbar">
+    <div id="tb-left">
+      <span id="pg-ico" style="color:var(--acc);font-size:18px">◈</span>
+      <span id="pg-lbl">Dashboard</span>
+    </div>
+    <div id="tb-right">
+      <span id="wp" class="pill" style="display:none;color:var(--red);background:var(--red-bg)"></span>
+      <select id="sm"></select>
+      <select id="sy"><option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option></select>
+    </div>
+  </header>
+  <div id="content">
+
+    <!-- DASHBOARD -->
+    <div id="p-dashboard" class="page on">
+      <div class="sg" id="sgrid"></div>
+      <div class="row">
+        <button class="ba" id="bga">⚡ Alle Fahrer generieren</button>
+        <button class="bg" id="bgp">▦ Zur Planung</button>
+      </div>
+      <div class="slbl">FAHRERSTATUS</div>
+      <div class="dg" id="dgrid"></div>
+    </div>
+
+    <!-- FAHRER -->
+    <div id="p-fahrer" class="page">
+      <div class="row">
+        <div class="slbl" style="margin:0">FAHRERVERWALTUNG</div>
+        <button class="ba" id="badd" style="margin-left:auto;font-size:12px;padding:8px 14px">+ Neuer Fahrer</button>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>#</th><th>Name</th><th>Brutto/Mo.</th><th>Stundenlohn</th><th>Max-Std. (global)</th><th>Std. diesen Monat</th><th>Kein Sa</th><th>Ist-Std.</th><th>Status</th><th></th></tr></thead>
+          <tbody id="ftb"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PLANUNG -->
+    <div id="p-planung" class="page">
+      <div id="pw">
+        <div id="dl">
+          <div id="dlh">FAHRER</div>
+          <div id="dli"></div>
+          <div class="dlfoot">
+            <button class="ba" style="width:100%;padding:9px;font-size:12px" id="bga2">⚡ Alle generieren</button>
+          </div>
+        </div>
+        <div id="pa">
+          <div class="es"><div class="ei">⬡</div><div class="et">Fahrer auswählen</div><div class="esub">Zielstunden &amp; Sondertage eingeben</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOKUMENTE -->
+    <div id="p-dokumente" class="page">
+
+      <!-- U1 ERFASSUNG -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+
+        <!-- U1 / Krankmeldung -->
+        <div style="background:var(--card);border:1px solid var(--bor);border-radius:12px;padding:18px;border-top:2px solid #EF4444">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+            <span style="font-size:18px;color:#EF4444">♥</span>
+            <span style="font-weight:800;font-size:14px">U1-Krankmeldung erfassen</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--mut);margin-bottom:10px;padding:8px 10px;background:var(--red-bg);border-radius:6px;border:1px solid rgba(239,68,68,.2)">
+            ⚠ Gib Fahrer + Zeitraum ein. Alle Kranktage werden automatisch in alle betroffenen Monate eingetragen und Stundenpläne neu berechnet.
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div>
+              <div class="fl2">FAHRER</div>
+              <select class="fi" id="u1-dr" style="width:100%;color:var(--txt);background:var(--surf)"><option value="">– Fahrer wählen –</option></select>
+            </div>
+            <div>
+              <div class="fl2">ERSTER TAG GEARBEITET?</div>
+              <select class="fi" id="u1-et" style="width:100%;color:var(--txt);background:var(--surf)">
+                <option value="nein">Nein – krank ab erstem Tag</option>
+                <option value="ja">Ja – am ersten Tag noch gearbeitet</option>
+              </select>
+            </div>
+            <div>
+              <div class="fl2">KRANK VON (YYYY-MM-DD)</div>
+              <input class="fi" id="u1-von" placeholder="2026-03-01"/>
+            </div>
+            <div>
+              <div class="fl2">KRANK BIS (YYYY-MM-DD)</div>
+              <input class="fi" id="u1-bis" placeholder="2026-03-31"/>
+            </div>
+          </div>
+          <button class="ba" style="width:100%;padding:10px;font-size:13px" onclick="applyU1()">♥ Krankmeldung übernehmen &amp; Pläne aktualisieren</button>
+        </div>
+
+        <!-- BLITZER ERFASSUNG -->
+        <div style="background:var(--card);border:1px solid var(--bor);border-radius:12px;padding:18px;border-top:2px solid #F0A500">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+            <span style="font-size:18px;color:#F0A500">⚡</span>
+            <span style="font-weight:800;font-size:14px">Blitzerbescheid erfassen</span>
+          </div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--mut);margin-bottom:10px;padding:8px 10px;background:var(--acc-bg);border-radius:6px;border:1px solid rgba(240,165,0,.2)">
+            ⚡ Tag wird als Pflicht-Arbeitstag gesetzt. Plan wird sofort neu generiert.
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div>
+              <div class="fl2">FAHRER</div>
+              <select class="fi" id="bz-dr" style="width:100%;color:var(--txt);background:var(--surf)"><option value="">– Fahrer wählen –</option></select>
+            </div>
+            <div>
+              <div class="fl2">DATUM (YYYY-MM-DD)</div>
+              <input class="fi" id="bz-dat" placeholder="2026-04-15"/>
+            </div>
+          </div>
+          <button class="bam" style="width:100%;padding:10px;font-size:13px;font-family:var(--sans);font-weight:800" onclick="applyBzEntry()">⚡ Blitzer übernehmen &amp; Plan aktualisieren</button>
+        </div>
+      </div>
+
+      <!-- LOG -->
+      <div id="u1-log"></div>
+
+      <!-- FILE DROP -->
+      <div style="margin-top:16px">
+        <div class="slbl">DATEI-ARCHIV (optional)</div>
+        <div id="dz">
+          <div style="font-size:24px;color:var(--dim);margin-bottom:6px">◧</div>
+          <div style="font-weight:700;font-size:13px">Originaldokumente archivieren (optional)</div>
+          <div style="color:var(--mut);font-size:11px;margin-top:4px;font-family:var(--mono)">PDF, JPG, PNG — zur Ablage, keine automatische Auswertung</div>
+        </div>
+        <div id="dutbl" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+  </div>
+</main>
+</div>
+
+<!-- MODAL -->
+<div id="mo">
+  <div id="md">
+    <h3>Fahrer anlegen</h3>
+    <div class="mf"><div class="fl2">VOLLSTÄNDIGER NAME</div><input class="fi" id="mn" placeholder="Vorname Nachname"/></div>
+    <div class="mf"><div class="fl2">BRUTTOGEHALT (€/MONAT)</div><input class="fi" type="number" id="mb" placeholder="z.B. 1200"/><div id="mhint" style="font-family:var(--mono);font-size:9px;color:var(--mut);margin-top:3px"></div></div>
+    <div class="mf"><div class="fl2">STUNDENLOHN (€) — leer = Mindestlohn 13,90€</div><input class="fi" type="number" step="0.10" id="mw" placeholder="13,90"/><div id="mwhint" style="font-family:var(--mono);font-size:9px;color:var(--mut);margin-top:3px"></div></div>
+    <div class="mck"><input type="checkbox" id="mns" style="width:15px;height:15px;accent-color:var(--acc)"/><label for="mns" style="font-size:12px;cursor:pointer">Kein Samstag</label></div>
+    <div style="display:flex;gap:10px">
+      <button class="ba" style="flex:1;padding:10px" id="bmok">Anlegen</button>
+      <button class="bg" style="flex:1;padding:10px" id="bmno">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CONSTANTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const ML=13.90;
+const STARTS=[7,7.5,8,8.5,9,9.5,10];
+const PAUSES=[30,45,60];
+const MN=["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const WD=["Sonntag","Montag","Dienstag","Mittwoch","Donnerstag","Freitag","Samstag"];
+const FT={"2026-01-01":"Neujahr","2026-04-03":"Karfreitag","2026-04-06":"Ostermontag","2026-05-01":"Tag der Arbeit","2026-05-14":"Christi Himmelfahrt","2026-05-25":"Pfingstmontag","2026-06-04":"Fronleichnam","2026-10-03":"Tag der Einheit","2026-11-01":"Allerheiligen","2026-12-25":"1. Weihnachtstag","2026-12-26":"2. Weihnachtstag"};
+const DTYPES=[{t:"Lohnabrechnung",i:"◉",c:"#3B82F6",d:"Monatliche Lohnabrechnung"},{t:"Krankenschein",i:"♥",c:"#EF4444",d:"AU-Bescheinigung"},{t:"Blitzerbescheid",i:"⚡",c:"#F0A500",d:"Bußgeldbescheid"},{t:"Erstattungsbeleg",i:"◧",c:"#22C55E",d:"U1-Erstattungsantrag"}];
+const ICONS={dashboard:"◈",fahrer:"⬡",planung:"▦",dokumente:"◧"};
+const LBLS={dashboard:"Dashboard",fahrer:"Fahrer",planung:"Monatsplanung",dokumente:"Dokumente"};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STATE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const S={
+  pg:"dashboard",yr:2026,mo:4,sel:null,
+  dr:[
+    {id:1,n:"Adnan Alhashoum",  b:800, ns:false,on:true,manH:null,wage:null},
+    {id:2,n:"Faisal Ali",       b:1240,ns:false,on:true,manH:null,wage:null},
+    {id:3,n:"Mohammad Ali",     b:2370,ns:false,on:true,manH:null,wage:null},
+    {id:4,n:"Mohannad Ali",     b:940, ns:true, on:true,manH:null,wage:null},
+    {id:5,n:"Alaa Alkhubi",     b:1270,ns:false,on:true,manH:null,wage:null},
+    {id:6,n:"Mohammed Alothman",b:904, ns:false,on:true,manH:null,wage:null},
+    {id:7,n:"Abdul Aziz Daoud", b:1845,ns:false,on:true,manH:null,wage:null},
+    {id:8,n:"Sibel Gösen",      b:603, ns:false,on:true,manH:null,wage:null},
+    {id:9,n:"Talat Gösen",      b:2700,ns:false,on:true,manH:null,wage:null},
+    {id:10,n:"Abdulhamid Hame", b:2370,ns:false,on:true,manH:null,wage:null},
+    {id:11,n:"Ibrahim Hasan",   b:2370,ns:false,on:true,manH:null,wage:null},
+    {id:12,n:"Ali Mohamad",     b:1250,ns:false,on:true,manH:null,wage:null},
+  ],
+  pl:{},sk:{},bz:{},tg:{},up:[],u1:[],bzLog:[]
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// UTILS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const pk=(id,y,m)=>`${id}_${y}_${m}`;
+// ML already defined in CONSTANTS above
+const mxh=(b,wage)=>Math.round(b/(wage||ML)*10)/10;
+// Priority: S.tg[pk] (per-month) > d.manH (global default) > brutto/wage (auto)
+const effMaxH=d=>d.manH!=null?+d.manH:mxh(d.b,d.wage);
+const effWage=d=>d.wage!=null?+d.wage:ML;
+const hm=h=>{const hh=Math.floor(h),mm=Math.round((h-hh)*60);return`${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`};
+const r15=h=>Math.round(h*4)/4;
+const dim=(y,m)=>new Date(y,m,0).getDate();
+const ds=(y,m,d)=>`${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`;
+const dow=(y,m,d)=>new Date(y,m-1,d).getDay();
+const cl=(v,a,b)=>Math.min(Math.max(v,a),b);
+const g=id=>document.getElementById(id);
+const e=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function rng(seed){let s=((seed^0xDEADBEEF)>>>0)||1;return()=>{s^=s<<13;s^=s>>>17;s^=s<<5;return(s>>>0)/0xFFFFFFFF}}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ENGINE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function genSched(dr,yr,mo,tgt,sick,blitz){
+  const R=rng(dr.id*100000+yr*100+mo);
+  const mh=effMaxH(dr);
+  const target=tgt!=null?cl(+tgt,1,mh):parseFloat((mh*(0.87+R()*0.06)).toFixed(1));
+  const tot=dim(yr,mo),all=[];
+  for(let d=1;d<=tot;d++){
+    const date=ds(yr,mo,d),wd=dow(yr,mo,d);
+    const isSick=sick.includes(date),isBlitz=blitz.includes(date);
+    const isSun=wd===0,isSat=wd===6,isHol=!!FT[date];
+    let st="ok";
+    if(isSick)st="sick";else if(isHol)st="hol";else if(isSun)st="sun";else if(isSat&&dr.ns)st="nosat";
+    all.push({d,date,wd,st,isSick,isBlitz,isHol,isSun,isSat});
+  }
+  const avail=all.filter(x=>x.st==="ok"||(x.isBlitz&&!x.isSick));
+  const must=new Set(all.filter(x=>x.isBlitz&&!x.isSick).map(x=>x.date));
+  const avg=5.5+R()*2;
+  let need=cl(Math.ceil(target/avg),must.size,avail.length);
+  const ws=new Set(must);
+  const pool=avail.filter(x=>!ws.has(x.date)).sort(()=>R()-.5);
+  for(const x of pool){if(ws.size>=need)break;ws.add(x.date)}
+  const wdo=all.filter(x=>ws.has(x.date));
+  let rem=target,lastSi=-1;
+  const days=all.map(x=>{
+    const base={...x,start:null,end:null,pause:null,hrs:null,efzH:null};
+    if(!ws.has(x.date))return base;
+    const left=wdo.filter(w=>w.d>=x.d).length;
+    let dh=cl(rem/left,5,8);dh=Math.round(dh*2)/2;
+    const pa=dh>=7?PAUSES[1+Math.floor(R()*2)]:dh>=6?PAUSES[Math.floor(R()*2)]:30;
+    const cands=STARTS.map((_,i)=>i).filter(i=>i!==lastSi);
+    const si=cands[Math.floor(R()*cands.length)];lastSi=si;
+    const sh=STARTS[si];
+    const fh=parseFloat(cl(r15(sh+dh+pa/60)-sh-pa/60,0,8).toFixed(2));
+    rem=Math.max(rem-fh,0);
+    return{...base,st:"work",start:hm(sh),end:hm(r15(sh+fh+pa/60)),pause:pa,hrs:fh};
+  });
+
+  // ── ENTGELTFORTZAHLUNG (§2 + §3 EFZG) ──
+  // Average daily hours based on actual worked days
+  const workDays=days.filter(x=>x.st==="work");
+  const totalWorked=parseFloat(workDays.reduce((s,x)=>s+(x.hrs||0),0).toFixed(2));
+  const avgDayH=workDays.length>0 ? parseFloat((totalWorked/workDays.length).toFixed(2)) : parseFloat((target/(need||1)).toFixed(2));
+  // Apply EFZ to sick weekdays and holidays (Mon–Sat only, not Sundays)
+  days.forEach(x=>{
+    if(x.isSun) return; // Sundays never EFZ
+    if(x.isSick && !x.isHol) x.efzH=avgDayH;   // Krankentag EFZ §3 EFZG
+    else if(x.isHol) x.efzH=avgDayH;             // Feiertag EFZ §2 EFZG
+  });
+  const totalEFZ=parseFloat(days.reduce((s,x)=>s+(x.efzH||0),0).toFixed(2));
+  const grandTotal=parseFloat((totalWorked+totalEFZ).toFixed(2));
+
+  const w=[];
+  if(grandTotal>mh+.01)w.push(`Monatsgrenze überschritten: ${grandTotal}h > ${mh}h`);
+  if(days.some(x=>(x.hrs||0)>8.01))w.push("Tagesstunden > 8h – prüfen");
+  const effW=dr.wage||ML;
+  if(effW<ML)w.push(`Stundenlohn ${effW.toFixed(2)}€ liegt UNTER Mindestlohn (${ML}€)!`);
+  return{days,total:grandTotal,worked:totalWorked,efz:totalEFZ,avgDayH,target:parseFloat(target.toFixed(1)),maxH:mh,warnings:w};
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MONTH SELECT INIT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+(()=>{const s=g("sm");MN.forEach((m,i)=>{const o=document.createElement("option");o.value=i+1;o.textContent=m;if(i+1===S.mo)o.selected=true;s.appendChild(o)})})();
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RENDER
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderDash(){
+  const act=S.dr.filter(x=>x.on);
+  let tp=0,tm=0,w=0,pl=0;
+  for(const d of act){tm+=effMaxH(d);const p=S.pl[pk(d.id,S.yr,S.mo)];if(p){tp+=p.total;w+=p.warnings.length;pl++}}
+  const wp=g("wp");wp.style.display=w>0?"inline":"none";wp.textContent=`⚠ ${w} Warnung${w>1?"en":""}`;
+  g("sgrid").innerHTML=[
+    {l:"Aktive Fahrer",v:act.length,s:"Cango Transporte",c:"#3B82F6",i:"⬡"},
+    {l:"Geplant",v:`${pl}/${act.length}`,s:`${MN[S.mo-1]} ${S.yr}`,c:"#22C55E",i:"▦"},
+    {l:"Iststunden gesamt",v:`${tp.toFixed(1)}h`,s:`von max. ${tm.toFixed(1)}h`,c:"#F0A500",i:"◉"},
+    {l:"Warnungen",v:w,s:w===0?"Alles OK":"Bitte prüfen",c:w>0?"#EF4444":"#22C55E",i:"⚠"},
+  ].map(x=>`<div class="sc" style="border-top-color:${x.c}"><div class="si" style="color:${x.c}">${x.i}</div><div class="sv" style="color:${x.c}">${e(x.v)}</div><div class="sl">${x.l}</div><div class="ss" style="color:${x.c}">${x.s}</div></div>`).join("");
+  g("dgrid").innerHTML=act.map(d=>{
+    const p=S.pl[pk(d.id,S.yr,S.mo)],mh=effMaxH(d),wa=p?.warnings?.length>0;
+    const bc=wa?"rgba(239,68,68,.5)":p?"rgba(34,197,94,.4)":"var(--bor)";
+    return`<div class="dm" style="border-color:${bc}"><div class="dn">${e(d.n)}</div><div class="dmet">Max: ${mh}h · ${d.b}€</div>${p?`<div class="dh" style="color:${wa?"#EF4444":"#22C55E"}">${p.total}h</div><div class="ds" style="color:${wa?"#EF4444":"#22C55E"}">${wa?"⚠ "+e(p.warnings[0]):"✓ "+p.days.filter(x=>x.st==="work").length+" Tage"}</div>`:`<div style="font-size:10px;color:var(--dim);margin-top:10px;font-family:var(--mono)">Nicht generiert</div>`}</div>`;
+  }).join("");
+}
+
+function renderFahrer(){
+  g("ftb").innerHTML=S.dr.map((d,i)=>{
+    const wage=effWage(d);
+    const autoMaxH=mxh(d.b,wage);
+    const eff=effMaxH(d);
+    const p=S.pl[pk(d.id,S.yr,S.mo)],wa=p?.warnings?.length>0;
+    const moK=pk(d.id,S.yr,S.mo);
+    const moH=S.tg[moK]||"";
+    const wageOk=wage>=ML;
+    return`<tr style="opacity:${d.on?1:.45}">
+      <td style="color:var(--mut);font-family:var(--mono)">${String(d.id).padStart(2,"0")}</td>
+      <td style="font-weight:700;font-family:var(--sans);font-size:13px">${e(d.n)}</td>
+      <td style="color:#F0A500;font-weight:600;font-family:var(--mono)">${d.b.toLocaleString("de-DE")} €</td>
+      <td>
+        <input type="number" step="0.10" value="${d.wage!=null?d.wage:""}" placeholder="${ML}"
+          style="width:72px;background:var(--surf);border:1px solid ${wageOk?"var(--bor)":"rgba(239,68,68,.6)"};color:${wageOk?"var(--txt)":"#EF4444"};padding:4px 7px;border-radius:5px;font-family:var(--mono);font-size:11px"
+          onchange="setWage(${d.id},this.value)"
+          title="Stundenlohn in €. Mindestlohn 2026 = 13,90 €"/>
+        <div style="font-family:var(--mono);font-size:9px;margin-top:2px;color:${wageOk?"var(--dim)":"#EF4444"}">${wage.toFixed(2)} €/Std.${!wageOk?" ⚠ UNTER MINDESTLOHN!":""}</div>
+      </td>
+      <td>
+        <div style="font-family:var(--mono);font-size:12px;font-weight:600;color:${d.manH!=null?"#F0A500":"var(--txt)"}">${eff} Std.</div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:1px">Auto: ${autoMaxH}h${d.manH!=null?" · <span style='color:#F0A500'>Override: "+d.manH+"h</span>":""}</div>
+        <input type="number" value="${d.manH!=null?d.manH:""}" placeholder="leer = auto"
+          style="width:80px;background:var(--surf);border:1px solid var(--bor);color:var(--txt);padding:3px 7px;border-radius:5px;font-family:var(--mono);font-size:10px;margin-top:3px"
+          onchange="setManH(${d.id},this.value)"
+          title="Globales Stunden-Maximum für alle Monate. Leer = automatisch aus Brutto/Lohn berechnet"/>
+      </td>
+      <td>
+        <input type="number" value="${moH}" placeholder="${eff}"
+          style="width:72px;background:${moH?"rgba(240,165,0,.08)":"var(--surf)"};border:1px solid ${moH?"rgba(240,165,0,.5)":"var(--bor)"};color:${moH?"#F0A500":"var(--txt)"};padding:4px 7px;border-radius:5px;font-family:var(--mono);font-size:11px"
+          onchange="setMonthH(${d.id},${S.yr},${S.mo},this.value)"
+          title="${MN[S.mo-1]} ${S.yr}: Stunden für diesen Monat. Leer = globales Maximum"/>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:2px">${MN[S.mo-1]} ${S.yr}</div>
+      </td>
+      <td>${d.ns?'<span style="color:#EF4444">● Ja</span>':'<span style="color:var(--dim)">Nein</span>'}</td>
+      <td>${p?`<span style="color:${wa?"#EF4444":"#22C55E"};font-weight:600;font-family:var(--mono)">${p.total}h${wa?" ⚠":""}</span>`:'<span style="color:var(--dim);font-family:var(--mono)">—</span>'}</td>
+      <td>${d.on?'<span style="color:#22C55E">● Aktiv</span>':'<span style="color:var(--mut)">○ Inaktiv</span>'}</td>
+      <td><button class="bsm" onclick="tgDr(${d.id})">${d.on?"Deakt.":"Akt."}</button></td>
+    </tr>`;
+  }).join("");
+}
+
+function renderDL(){
+  g("dli").innerHTML=S.dr.filter(x=>x.on).map(d=>{
+    const p=S.pl[pk(d.id,S.yr,S.mo)],mh=effMaxH(d),sel=S.sel===d.id,wa=p?.warnings?.length>0;
+    return`<div class="dli${sel?" on":""}" onclick="selDr(${d.id})"><div class="dlin">${e(d.n)}</div><div class="dlis"><span style="font-family:var(--mono);font-size:10px;color:var(--mut)">max ${mh}h</span>${p?`<span style="font-family:var(--mono);font-size:10px;color:${wa?"#EF4444":"#22C55E"};font-weight:600">${p.total}h${wa?" ⚠":" ✓"}</span>`:""}</div></div>`;
+  }).join("");
+}
+
+function renderPA(){
+  const area=g("pa");
+  const dr=S.dr.find(x=>x.id===S.sel);
+  if(!dr){area.innerHTML=`<div class="es"><div class="ei">⬡</div><div class="et">Fahrer auswählen</div><div class="esub">Zielstunden &amp; Sondertage eingeben</div></div>`;return}
+  const k=pk(dr.id,S.yr,S.mo),p=S.pl[k],sl=S.sk[k]||[],bl=S.bz[k]||[],th=S.tg[k]||"",mh=effMaxH(dr);
+  const wH=p?.warnings?.length>0?`<div class="wb">${p.warnings.map(w=>`<div class="wl">⚠ ${e(w)}</div>`).join("")}</div>`:"";
+  const sH=p?renderSched(p,dr):`<div class="es"><div class="ei">▦</div><div class="et">Noch kein Stundenzettel für ${e(dr.n)}</div><button class="ba" style="margin-top:16px;padding:9px 22px" onclick="gp(${dr.id})">Jetzt generieren</button></div>`;
+  area.innerHTML=`<div class="cb"><div class="ch"><div>
+      <span style="font-weight:800;font-size:16px">${e(dr.n)}</span>
+      <span style="font-family:var(--mono);font-size:10px;color:var(--mut);margin-left:12px">${dr.b}€ Brutto · ${effWage(dr).toFixed(2)}€/Std. · max ${mh}h · ${dr.ns?"Mo–Fr":"Mo–Sa"}</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      ${p?`<button class="bbl" onclick="doCSV(${dr.id})">↓ CSV</button><button class="bbl" onclick="doPrint(${dr.id})">🖨 Drucken</button>`:""}
+      <button class="ba" onclick="gp(${dr.id})" style="padding:7px 16px;font-size:12px">Generieren</button>
+    </div></div>
+    <div style="background:var(--surf);border-radius:8px;padding:12px 14px;margin-bottom:12px;border:1px solid ${th?"rgba(240,165,0,.4)":"var(--bor)"}">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <div>
+          <div class="fl2" style="margin-bottom:4px">STUNDEN FÜR ${MN[S.mo-1].toUpperCase()} ${S.yr}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="fi" type="number" id="it_${k}" placeholder="${mh}" value="${th}"
+              style="width:100px;font-size:14px;font-weight:700;color:${th?"#F0A500":"var(--txt)"};"
+              onchange="setMonthH(${dr.id},${S.yr},${S.mo},this.value)"/>
+            <span style="font-family:var(--mono);font-size:13px;color:${th?"#F0A500":"var(--mut)"}">Std.</span>
+            ${th?`<span style="font-family:var(--mono);font-size:10px;color:#22C55E">✓ Manuell gesetzt</span>`:`<span style="font-family:var(--mono);font-size:10px;color:var(--dim)">leer = auto (${mh}h)</span>`}
+          </div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:3px">
+            Gilt nur für ${MN[S.mo-1]} ${S.yr} · Andere Monate separat einstellbar in der Fahrer-Tabelle
+          </div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--mut)">WIRKSAMER MAXIMALWERT</div>
+          <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:#F0A500">${th||mh} Std.</div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--dim)">${effWage(dr).toFixed(2)}€/Std. · ${dr.b}€ Brutto</div>
+        </div>
+      </div>
+    </div>
+    <div class="cg" style="grid-template-columns:1.3fr 1.3fr">
+      <div><div class="fl2">KRANKTAG (YYYY-MM-DD)</div><div style="display:flex;gap:6px"><input class="fi" style="flex:1" id="isk_${k}" placeholder="2026-04-07" onkeydown="if(event.key==='Enter')addSk('${k}')"/><button class="br" onclick="addSk('${k}')">+</button></div><div class="tagrow">${sl.map(s=>`<span class="tag-r" onclick="rmSk('${k}','${s}')">🔴 ${s} ✕</span>`).join("")}</div></div>
+      <div><div class="fl2">BLITZERTAG (YYYY-MM-DD)</div><div style="display:flex;gap:6px"><input class="fi" style="flex:1" id="ibz_${k}" placeholder="2026-04-15" onkeydown="if(event.key==='Enter')addBz('${k}')"/><button class="bam" onclick="addBz('${k}')">+</button></div><div class="tagrow">${bl.map(b=>`<span class="tag-a" onclick="rmBz('${k}','${b}')">⚡ ${b} ✕</span>`).join("")}</div></div>
+    </div></div>${wH}${sH}`;
+}
+
+function renderSched(plan,dr){
+  const rows=plan.days.map(x=>{
+    const iw=x.st==="work",hasEFZ=x.efzH!=null&&x.efzH>0;
+    let cls="ro";if(x.isSick)cls="rk";else if(x.isHol)cls="rh";else if(iw)cls="rw";
+    // Annotation
+    let ann;
+    if(iw) ann=`<span style="color:#22C55E">● Arbeit${x.isBlitz?" ⚡":""}</span>`;
+    else if(x.isSick&&x.isHol) ann=`<span style="color:#F87171">● Krank + ${e(FT[x.date]||"Feiertag")}</span><span style="color:#A78BFA;margin-left:6px;font-size:9px">EFZ §2+§3</span>`;
+    else if(x.isSick) ann=`<span style="color:#F87171">● Krank</span><span style="color:#A78BFA;margin-left:6px;font-size:9px">EFZ §3 EFZG</span>`;
+    else if(x.isHol) ann=`<span style="color:#93C5FD">● ${e(FT[x.date]||"Feiertag")}</span><span style="color:#A78BFA;margin-left:6px;font-size:9px">EFZ §2 EFZG</span>`;
+    else if(x.isSun) ann=`<span style="color:var(--dim)">○ Sonntag</span>`;
+    else if(x.st==="nosat") ann=`<span style="color:var(--mut)">○ Kein Samstag</span>`;
+    else ann=`<span style="color:var(--dim)">○ Frei</span>`;
+    // Hours cell
+    const hCell=iw?`<span style="color:#F0A500;font-weight:700">${x.hrs} Std.</span>`
+      :hasEFZ?`<span style="color:#A78BFA;font-weight:600">${x.efzH} Std.</span>`
+      :`<span style="color:var(--dim)">—</span>`;
+    return`<tr class="${cls}">
+      <td style="font-weight:${iw||hasEFZ?600:400}">${x.date}</td>
+      <td>${WD[x.wd]}</td>
+      <td style="color:${iw?"#22C55E":"var(--dim)"};font-weight:${iw?600:400}">${iw?x.start:"—"}</td>
+      <td style="color:${iw?"#22C55E":"var(--dim)"};font-weight:${iw?600:400}">${iw?x.end:"—"}</td>
+      <td style="color:${iw?"var(--txt)":"var(--dim)"}">${iw?x.pause+" Min":"—"}</td>
+      <td>${hCell}</td>
+      <td style="font-size:10px">${ann}</td>
+    </tr>`;
+  }).join("");
+  const wd=plan.days.filter(x=>x.st==="work").length;
+  const sd=plan.days.filter(x=>x.isSick&&!x.isSun).length;
+  const hd=plan.days.filter(x=>x.isHol&&!x.isSun).length;
+  const wc=plan.warnings.length?"#EF4444":"#F0A500";
+  const efzInfo=plan.efz>0?`<span style="color:#A78BFA;margin-left:10px">+ ${plan.efz}h EFZ</span>`:"";
+  return`<div class="sw">
+    <div class="sh">
+      <span style="font-weight:800;font-size:13px">Stundenzettel · ${MN[S.mo-1]} ${S.yr}</span>
+      <span style="font-family:var(--mono);font-size:11px;color:var(--mut)">
+        ${wd} Arbeitstage
+        ${sd>0?`· <span style="color:#F87171">${sd} Kranktag${sd>1?"e":""}</span>`:""}
+        ${hd>0?`· <span style="color:#93C5FD">${hd} Feiertag${hd>1?"e":""}</span>`:""}
+        · <span style="color:${wc};font-weight:700">${plan.total}h gesamt</span>
+        ${efzInfo}
+        · max ${plan.maxH}h
+      </span>
+    </div>
+    <div style="background:var(--card);padding:8px 16px;border-bottom:1px solid var(--bor);display:flex;gap:20px;font-family:var(--mono);font-size:10px">
+      <span>Gearbeitet: <strong style="color:#22C55E">${plan.worked}h</strong></span>
+      <span>EFZ Krank+Feiertag: <strong style="color:#A78BFA">${plan.efz}h</strong></span>
+      <span>Ø Tagesdurchschnitt: <strong style="color:#F0A500">${plan.avgDayH}h</strong></span>
+      <span>Gesamt: <strong style="color:#F0A500">${plan.total}h</strong></span>
+    </div>
+    <table>
+      <thead><tr><th>DATUM</th><th>WOCHENTAG</th><th>BEGINN</th><th>ENDE</th><th>PAUSE</th><th>STUNDEN</th><th>ANMERKUNG</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr>
+        <td colspan="4">GESAMTSTUNDEN ${MN[S.mo-1].toUpperCase()} ${S.yr} — ${e(dr.n.toUpperCase())}</td>
+        <td colspan="3" class="tot">${plan.total} Std.</td>
+      </tr></tfoot>
+    </table>
+  </div>`;
+}
+
+function populateDrSelects(){
+  ["u1-dr","bz-dr"].forEach(id=>{
+    const sel=g(id);if(!sel)return;
+    const cur=sel.value;
+    sel.innerHTML=`<option value="">– Fahrer wählen –</option>`+S.dr.filter(x=>x.on).map(d=>`<option value="${d.id}"${d.id==cur?" selected":""}>${e(d.n)}</option>`).join("");
+  });
+}
+
+function renderDok(){
+  populateDrSelects();
+  // Log of U1 and Blitzer entries
+  const logRows=[
+    ...S.u1.map(x=>`<tr><td><span style="color:#EF4444">♥ Krankmeldung</span></td><td>${e(x.name)}</td><td style="font-family:var(--mono)">${x.von} → ${x.bis}</td><td style="color:var(--mut);font-family:var(--mono);font-size:10px">${x.sickDays} krank${x.ersterTagGearbeitet?' <span style="color:#F0A500">(+1 gearbeitet)</span>':""}</td><td><button class="bsm" style="color:#EF4444" onclick="rmU1('${x.id}')">✕ Entfernen</button></td></tr>`),
+    ...S.bzLog.map(x=>`<tr><td><span style="color:#F0A500">⚡ Blitzer</span></td><td>${e(x.name)}</td><td>${x.date}</td><td></td><td><button class="bsm" style="color:#EF4444" onclick="rmBzLog('${x.id}')">✕ Entfernen</button></td></tr>`),
+  ];
+  g("u1-log").innerHTML = logRows.length>0 ? `
+    <div class="tw" style="margin-bottom:16px">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--bor);display:flex;justify-content:space-between;align-items:center;background:var(--surf)">
+        <span style="font-weight:700;font-size:13px">Erfasste Einträge (${logRows.length})</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--mut)">Entfernen = Kranktage werden zurückgesetzt</span>
+      </div>
+      <table><thead><tr><th>TYP</th><th>FAHRER</th><th>ZEITRAUM / DATUM</th><th>TAGE</th><th></th></tr></thead>
+      <tbody>${logRows.join("")}</tbody></table>
+    </div>` : `<div style="font-family:var(--mono);font-size:11px;color:var(--dim);padding:14px 0;text-align:center">Noch keine Krankmeldungen oder Blitzer erfasst</div>`;
+
+  // File archive table
+  if(!S.up.length){g("dutbl").innerHTML=`<div style="text-align:center;color:var(--dim);padding:30px 0;font-family:var(--mono);font-size:11px">Noch keine Dateien archiviert</div>`;return}
+  g("dutbl").innerHTML=`<div class="tw"><div style="padding:12px 16px;border-bottom:1px solid var(--bor);display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;font-size:13px">Archiv (${S.up.length})</span><button class="bsm" onclick="S.up=[];renderDok()">Alle löschen</button></div><table><thead><tr><th>DATEINAME</th><th>GRÖSSE</th><th>DATUM</th><th></th></tr></thead><tbody>${S.up.map(u=>`<tr><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e(u.n)}</td><td style="color:var(--mut)">${u.sz}</td><td style="color:var(--mut)">${u.dt}</td><td><button class="bsm" style="color:#EF4444" onclick="rmUp('${u.id}')">✕</button></td></tr>`).join("")}</tbody></table></div>`;
+}
+
+// ─── RANGE TO DATE ARRAY ───
+function dateRange(von,bis){
+  const out=[],a=new Date(von),b=new Date(bis);
+  for(let d=new Date(a);d<=b;d.setDate(d.getDate()+1)){
+    const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),dd=String(d.getDate()).padStart(2,"0");
+    out.push(`${y}-${m}-${dd}`);
+  }
+  return out;
+}
+
+// ─── APPLY U1 ───
+function applyU1(){
+  const dId=+g("u1-dr").value,von=g("u1-von").value.trim(),bis=g("u1-bis").value.trim();
+  const ersterTagGearbeitet=g("u1-et").value==="ja";
+  if(!dId||!von||!bis){alert("Bitte Fahrer, Von- und Bis-Datum ausfüllen.");return}
+  if(von>bis){alert("Von-Datum muss vor Bis-Datum liegen.");return}
+  const dr=S.dr.find(x=>x.id===dId);if(!dr)return;
+  let dates=dateRange(von,bis);
+  if(!dates.length)return;
+  // If first day worked: remove it from sick list (shift will be entered normally)
+  const firstDay=dates[0];
+  const sickDates=ersterTagGearbeitet?dates.slice(1):dates;
+  if(!sickDates.length&&ersterTagGearbeitet){
+    alert("Nur ein Tag im Zeitraum und erster Tag gearbeitet – keine Kranktage eingetragen.");return;
+  }
+  // Group ALL dates by year+month for logging
+  const byMonth={};
+  dates.forEach(d=>{const ym=d.slice(0,7);if(!byMonth[ym])byMonth[ym]=[];byMonth[ym].push(d)});
+  // Group SICK dates by year+month for actual sick marking
+  const sickByMonth={};
+  sickDates.forEach(d=>{const ym=d.slice(0,7);if(!sickByMonth[ym])sickByMonth[ym]=[];sickByMonth[ym].push(d)});
+  // Apply sick days
+  Object.entries(sickByMonth).forEach(([ym,ds])=>{
+    const [y,m]=[+ym.slice(0,4),+ym.slice(5,7)];
+    const k=pk(dId,y,m);
+    if(!S.sk[k])S.sk[k]=[];
+    ds.forEach(d=>{if(!S.sk[k].includes(d))S.sk[k].push(d)});
+    // Auto-generate plan for each affected month (create if not exists)
+    S.pl[k]=genSched(dr,y,m,S.tg[k]||null,S.sk[k],S.bz[k]||[]);
+  });
+  // If first day worked: ensure it is in the work pool (not sick) – just remove from sick just in case
+  if(ersterTagGearbeitet){
+    const ym=firstDay.slice(0,7),y=+ym.slice(0,4),m=+ym.slice(5,7),k=pk(dId,y,m);
+    if(S.sk[k])S.sk[k]=S.sk[k].filter(d=>d!==firstDay);
+    S.pl[k]=genSched(dr,y,m,S.tg[k]||null,S.sk[k]||[],S.bz[k]||[]);
+  }
+  const id=Math.random().toString(36).slice(2);
+  S.u1.push({id,dId,name:dr.n,von,bis,days:dates.length,sickDays:sickDates.length,ersterTagGearbeitet,dates,sickDates,byMonth,sickByMonth});
+  g("u1-von").value="";g("u1-bis").value="";
+  render();renderDok();
+  const monate=Object.keys(sickByMonth).join(", ");
+  alert(`✓ U1-Krankmeldung übernommen für ${dr.n}\n\nZeitraum: ${von} → ${bis}\nErster Tag gearbeitet: ${ersterTagGearbeitet?"Ja":"Nein"}\nKranktage eingetragen: ${sickDates.length}\nBetroffene Monate: ${monate}\n\nStundenpläne wurden automatisch neu berechnet.`);
+}
+
+// ─── REMOVE U1 ───
+function rmU1(id){
+  const entry=S.u1.find(x=>x.id===id);if(!entry)return;
+  const dr=S.dr.find(x=>x.id===entry.dId);
+  // Remove the sick days that came from this entry
+  Object.entries(entry.byMonth).forEach(([ym,ds])=>{
+    const [y,m]=[+ym.slice(0,4),+ym.slice(5,7)];
+    const k=pk(entry.dId,y,m);
+    if(S.sk[k]) S.sk[k]=S.sk[k].filter(d=>!ds.includes(d));
+    if(S.pl[k]&&dr) S.pl[k]=genSched(dr,y,m,S.tg[k]||null,S.sk[k]||[],S.bz[k]||[]);
+  });
+  S.u1=S.u1.filter(x=>x.id!==id);
+  render();renderDok();
+}
+
+// ─── APPLY BLITZER ENTRY ───
+function applyBzEntry(){
+  const dId=+g("bz-dr").value,date=g("bz-dat").value.trim();
+  if(!dId||!date){alert("Bitte Fahrer und Datum ausfüllen.");return}
+  const dr=S.dr.find(x=>x.id===dId);if(!dr)return;
+  const y=+date.slice(0,4),m=+date.slice(5,7);
+  const k=pk(dId,y,m);
+  if(!S.bz[k])S.bz[k]=[];
+  if(!S.bz[k].includes(date))S.bz[k].push(date);
+  if(S.pl[k]) S.pl[k]=genSched(dr,y,m,S.tg[k]||null,S.sk[k]||[],S.bz[k]);
+  const id=Math.random().toString(36).slice(2);
+  S.bzLog.push({id,dId,name:dr.n,date});
+  g("bz-dat").value="";
+  render();renderDok();
+  alert(`✓ Blitzertag ${date} für ${dr.n} gesetzt.\nPlan für ${MN[m-1]} ${y} wurde aktualisiert.`);
+}
+
+// ─── REMOVE BLITZER LOG ───
+function rmBzLog(id){
+  const entry=S.bzLog.find(x=>x.id===id);if(!entry)return;
+  const dr=S.dr.find(x=>x.id===entry.dId);
+  const y=+entry.date.slice(0,4),m=+entry.date.slice(5,7);
+  const k=pk(entry.dId,y,m);
+  if(S.bz[k])S.bz[k]=S.bz[k].filter(d=>d!==entry.date);
+  if(S.pl[k]&&dr) S.pl[k]=genSched(dr,y,m,S.tg[k]||null,S.sk[k]||[],S.bz[k]||[]);
+  S.bzLog=S.bzLog.filter(x=>x.id!==id);
+  render();renderDok();
+}
+
+function render(){renderDash();renderFahrer();renderDL();if(S.pg==="planung")renderPA();if(S.pg==="dokumente")renderDok();else populateDrSelects()}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ACTIONS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function setPage(p){
+  S.pg=p;
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("on"));
+  g(`p-${p}`).classList.add("on");
+  document.querySelectorAll(".nb").forEach(x=>x.classList.toggle("on",x.dataset.pg===p));
+  g("pg-ico").textContent=ICONS[p];g("pg-lbl").textContent=LBLS[p];
+  if(p==="planung")renderPA();if(p==="dokumente")renderDok();
+}
+function selDr(id){S.sel=id;renderDL();renderPA()}
+// Debounce helper — prevents rapid re-renders while typing
+let _rt=null;
+function deferRender(skipFahrer){
+  clearTimeout(_rt);
+  _rt=setTimeout(()=>{
+    renderDash();
+    renderDL();
+    if(!skipFahrer) renderFahrer();
+    if(S.pg==="planung") renderPA();
+    if(S.pg==="dokumente") renderDok();
+  },180);
+}
+
+function setWage(id,val){
+  const dr=S.dr.find(x=>x.id===id);if(!dr)return;
+  dr.wage=val&&+val>0?+val:null;
+  Object.keys(S.pl).filter(k=>k.startsWith(id+"_")).forEach(k=>{
+    const [,y,m]=k.split("_").map(Number);
+    S.pl[k]=genSched(dr,y,m,S.tg[k]||null,S.sk[k]||[],S.bz[k]||[]);
+  });
+  deferRender(true); // skip fahrer re-render to avoid losing focus
+}
+function setMonthH(id,yr,mo,val){
+  const dr=S.dr.find(x=>x.id===id);if(!dr)return;
+  const k=pk(id,yr,mo);
+  S.tg[k]=val&&+val>0?+val:null;
+  S.pl[k]=genSched(dr,yr,mo,S.tg[k]||null,S.sk[k]||[],S.bz[k]||[]);
+  deferRender(true); // skip fahrer re-render
+}
+function setManH(id,val){
+  const dr=S.dr.find(x=>x.id===id);if(!dr)return;
+  dr.manH=val&&+val>0?+val:null;
+  Object.keys(S.pl).filter(k=>k.startsWith(id+"_")).forEach(k=>{
+    const [,y,m]=k.split("_").map(Number);
+    S.pl[k]=genSched(dr,y,m,S.tg[k]||null,S.sk[k]||[],S.bz[k]||[]);
+  });
+  deferRender(true); // skip fahrer re-render
+}
+function tgDr(id){const d=S.dr.find(x=>x.id===id);if(d)d.on=!d.on;render()}
+function gp(id){
+  const dr=S.dr.find(x=>x.id===id);if(!dr)return;
+  const k=pk(id,S.yr,S.mo);
+  S.pl[k]=genSched(dr,S.yr,S.mo,S.tg[k]||null,S.sk[k]||[],S.bz[k]||[]);
+  render();if(S.pg==="planung")renderPA();
+}
+function gpAll(){for(const d of S.dr.filter(x=>x.on))gp(d.id)}
+function addSk(k){const v=g(`isk_${k}`)?.value?.trim();if(!v)return;if(!S.sk[k])S.sk[k]=[];if(!S.sk[k].includes(v))S.sk[k].push(v);renderPA()}
+function rmSk(k,d){S.sk[k]=(S.sk[k]||[]).filter(x=>x!==d);renderPA()}
+function addBz(k){const v=g(`ibz_${k}`)?.value?.trim();if(!v)return;if(!S.bz[k])S.bz[k]=[];if(!S.bz[k].includes(v))S.bz[k].push(v);renderPA()}
+function rmBz(k,d){S.bz[k]=(S.bz[k]||[]).filter(x=>x!==d);renderPA()}
+function rmUp(id){S.up=S.up.filter(u=>u.id!==id);renderDok()}
+
+function doCSV(id){
+  const dr=S.dr.find(x=>x.id===id),k=pk(id,S.yr,S.mo),p=S.pl[k];if(!p||!dr)return;
+  const rows=["\uFEFFDatum,Wochentag,Beginn,Ende,Pause (Min),Netto-Stunden,Status"];
+  p.days.forEach(x=>{
+    if(x.st==="work")rows.push(`${x.date},${WD[x.wd]},${x.start},${x.end},${x.pause},${x.hrs},Arbeit${x.isBlitz?" (Blitzer)":""}`);
+    else if(x.isSick)rows.push(`${x.date},${WD[x.wd]},,,,0,Krank`);
+    else if(x.isHol)rows.push(`${x.date},${WD[x.wd]},,,,0,Feiertag`);
+  });
+  rows.push(`\nGesamtstunden,,,,,${p.total},`);
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([rows.join("\n")],{type:"text/csv;charset=utf-8"}));
+  a.download=`Stundenzettel_${dr.n.replace(/\s+/g,"_")}_${MN[S.mo-1]}_${S.yr}.csv`;a.click();
+}
+
+function doPrint(id){
+  const dr=S.dr.find(x=>x.id===id),k=pk(id,S.yr,S.mo),p=S.pl[k];if(!p||!dr)return;
+  const wd=p.days.filter(x=>x.st==="work").length,sd=p.days.filter(x=>x.isSick).length;
+  const rows=p.days.map(x=>{
+    const bg=x.isSick?"#fff0f0":x.isHol?"#eef2ff":x.st==="work"?"#fff":"#f8f8f8",tc=x.isSick?"#cc0000":x.isHol?"#1d4ed8":"#333";
+    return`<tr style="background:${bg};color:${tc}"><td>${x.date}</td><td>${WD[x.wd]}</td><td style="text-align:center">${x.start||""}</td><td style="text-align:center">${x.end||""}</td><td style="text-align:center">${x.pause!=null?x.pause+" Min":""}</td><td style="text-align:right;font-weight:bold">${x.hrs!=null?x.hrs+" Std.":""}</td><td style="font-size:11px">${x.isSick?"🔴 Krank":x.isHol?"🔵 "+(FT[x.date]||"Feiertag"):x.st==="work"?"✅ Arbeit"+(x.isBlitz?" ⚡":""):"—"}</td></tr>`;
+  }).join("");
+  const w=window.open("","_blank");
+  w.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="UTF-8"/><title>Stundenzettel</title><style>body{font-family:Arial,sans-serif;font-size:12px;margin:20px}h1{color:#1F3864;font-size:17px;margin-bottom:3px}p{font-size:11px;color:#555;margin-bottom:10px}table{width:100%;border-collapse:collapse}th{background:#1F3864;color:#fff;padding:6px 8px;border:1px solid #ccc;text-align:left;font-size:11px}td{padding:5px 8px;border:1px solid #ddd}.tot{background:#1F3864;color:#fff;padding:13px 16px;margin-top:14px;display:flex;justify-content:space-between;align-items:center;border-radius:6px}.sig{display:flex;gap:50px;margin-top:40px}.sig div{flex:1;border-top:1px solid #333;padding-top:5px;font-size:11px;color:#555}@media print{body{margin:10px}}</style></head><body><h1>Cango Transporte – Arbeitszeitnachweis</h1><p><strong>Mitarbeiter:</strong> ${dr.n} &nbsp; <strong>Monat:</strong> ${MN[S.mo-1]} ${S.yr} &nbsp; <strong>Arbeitstage:</strong> ${wd} &nbsp; <strong>Kranktage:</strong> ${sd}</p><table><thead><tr><th>Datum</th><th>Wochentag</th><th>Beginn</th><th>Ende</th><th>Pause</th><th>Netto-Std.</th><th>Anmerkung</th></tr></thead><tbody>${rows}</tbody></table><div class="tot"><span style="font-weight:700">GESAMTSTUNDEN ${MN[S.mo-1].toUpperCase()} ${S.yr}</span><span style="font-size:20px;font-weight:900">${p.total} Std.</span></div><div class="sig"><div>Mitarbeiter: ______________________</div><div>Arbeitgeber (Cango Transporte): ______________________</div></div></body></html>`);
+  w.document.close();setTimeout(()=>w.print(),400);
+}
+
+function handleFiles(files){
+  [...files].forEach(f=>{
+    const n=f.name.toLowerCase();
+    const t=n.includes("lohn")||n.includes("abrechn")?"Lohnabrechnung":n.includes("krank")||n.includes("au")?"Krankenschein":n.includes("blitz")||n.includes("bescheid")?"Blitzerbescheid":n.includes("erstatt")||n.includes("u1")?"Erstattungsbeleg":"Sonstiges";
+    S.up.push({id:Math.random().toString(36).slice(2),n:f.name,t,sz:(f.size/1024).toFixed(1)+" KB",dt:new Date().toLocaleDateString("de-DE")});
+  });renderDok();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// EVENTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+document.querySelectorAll(".nb").forEach(b=>b.addEventListener("click",()=>setPage(b.dataset.pg)));
+g("bga").addEventListener("click",()=>{gpAll();render()});
+g("bga2").addEventListener("click",()=>{gpAll();render();renderPA()});
+g("bgp").addEventListener("click",()=>setPage("planung"));
+g("badd").addEventListener("click",()=>g("mo").classList.add("on"));
+g("bmno").addEventListener("click",()=>g("mo").classList.remove("on"));
+g("mo").addEventListener("click",function(ev){if(ev.target===this)this.classList.remove("on")});
+g("bmok").addEventListener("click",()=>{
+  const n=g("mn").value.trim(),b=+g("mb").value,ns=g("mns").checked,w=+g("mw")?.value||null;
+  if(!n||!b)return;
+  if(w&&w<ML){if(!confirm(`Stundenlohn ${w}€ liegt unter Mindestlohn (${ML}€). Trotzdem speichern?`))return}
+  const id=Math.max(...S.dr.map(x=>x.id),0)+1;
+  S.dr.push({id,n,b,ns,on:true,manH:null,wage:w});
+  g("mn").value="";g("mb").value="";g("mns").checked=false;if(g("mw"))g("mw").value="";
+  g("mo").classList.remove("on");render();
+});
+g("mb").addEventListener("input",function(){
+  const w=+g("mw")?.value||ML;
+  g("mhint").textContent=this.value?`Max. ${mxh(+this.value,w)} Std./Mo · ${w.toFixed(2)} €/Std.`:"";
+});
+g("sm").addEventListener("change",function(){S.mo=+this.value;render();if(S.pg==="planung")renderPA()});
+g("sy").addEventListener("change",function(){S.yr=+this.value;render();if(S.pg==="planung")renderPA()});
+const dz=g("dz");
+dz.addEventListener("click",()=>{const i=document.createElement("input");i.type="file";i.multiple=true;i.accept=".pdf,.jpg,.jpeg,.png";i.onchange=ev=>handleFiles(ev.target.files);i.click()});
+dz.addEventListener("dragover",ev=>{ev.preventDefault();dz.classList.add("dv")});
+dz.addEventListener("dragleave",()=>dz.classList.remove("dv"));
+dz.addEventListener("drop",ev=>{ev.preventDefault();dz.classList.remove("dv");handleFiles(ev.dataTransfer.files)});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// BOOT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+render();
+</script>
+</body>
+</html>
